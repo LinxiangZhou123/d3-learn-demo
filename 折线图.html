@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <select  id="select_city" onchange="renderUpdate(provinces[this.value])">
+    </select>
+    <svg width="1600" height="800" id="mainsvg" class="svgs"></svg>
+
+    <script>
+        const svg = d3.select("#mainsvg")
+        const width = +svg.attr("width"),
+        height = +svg.attr("height"),
+        margin = {top: 120, right: 50, bottom: 50, left: 120},
+        innerWidth = width - margin.left - margin.right,
+        innerHeight = height - margin.top - margin.bottom;
+        const g = svg.append("g").attr('transform', `translate(${margin.left}, ${margin.top})`);
+        const xValue = (datum) => { return datum['日期'] };
+        const yValue = (datum) => { return datum['现有确诊'] };
+        let xSacle, yScale; 
+        let alldates;
+        let allkeys;
+        const provinces = {}
+        function renderInit(data) {
+            xSacle = d3.scaleTime()
+            .domain(d3.extent(data, xValue))
+            .range([0, innerWidth])
+            .nice()
+
+            yScale = d3.scaleLinear()
+            .domain(d3.extent(data, yValue).reverse())
+            .range([0, innerHeight])
+            .nice()
+            const xAsix = d3.axisBottom(xSacle)
+            .ticks(Math.floor(alldates.length / 4))
+            .tickFormat(d3.timeFormat("%b - %d"))
+            .tickSize(-innerHeight)
+
+            const yAsix = d3.axisLeft(yScale)
+            .tickSize(-innerWidth)
+
+            g.append('g').attr("class", "x_asix").attr("transform", `translate(0, ${innerHeight})`).call(xAsix)
+            g.append('g').attr("class", "y_asix").call(yAsix)
+
+            g.selectAll(".x_asix .tick text").attr("y", 10)
+            g.selectAll(".y_asix .tick text").attr("x", -10)
+
+            g.append("path").attr("id", "alterPath")
+            renderCity()
+        }
+
+        function renderUpdate(data) {
+            const line = d3.line()
+            .x(d => xSacle(xValue(d)))
+            .y(d => yScale(yValue(d)))
+            .curve(d3.curveCardinal.tension(0.5))
+            g.select("#alterPath").datum(data)
+            .attr("stroke", "green")
+            .attr("stroke-width", 2)
+            .attr("fill", "none")
+            .transition().duration(1000)
+            .attr("d", line)
+        }
+
+        d3.csv("http://127.0.0.1:8081/province.csv").then(data => {
+            data = data.filter( datum => datum['省份'] !== '总计' && datum['省份'] !== '湖北')
+            alldates = Array.from( new Set(data.map( datum => datum['日期'] )) )
+            data.forEach(datum => {
+                datum['现有确诊'] = +datum['现有确诊']
+                datum['日期'] = new Date(datum['日期'])
+            })
+
+            allkeys = Array.from( new Set(data.map( datum => datum['省份'] )) )
+            
+            
+            allkeys.forEach(datum => {
+                provinces[datum] = []
+            })
+            data.forEach(datum => {
+                provinces[datum['省份']].push(datum)
+            })
+            
+            allkeys.forEach(key => {
+                provinces[key] = provinces[key].sort((a, b) => a['日期'] - b['日期'])
+            })
+
+            renderInit(data)
+            renderUpdate(provinces[allkeys[0]])
+        })
+        
+        function renderCity() {
+            let fragment = document.createDocumentFragment()
+            for (let index = 0; index < allkeys.length; index++) {
+                let option = document.createElement("option")
+                option.value = allkeys[index]
+                option.innerHTML = allkeys[index]
+                fragment.append(option)
+            }
+            document.querySelector("#select_city").appendChild(fragment)
+        }
+    </script>
+</body>
+</html>

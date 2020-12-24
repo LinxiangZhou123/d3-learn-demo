@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        svg{
+            
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <div id="svg"></div>
+    <script>
+        const { boxWidth, boxHeight, marginTop, marginRight, marginBottom, marginLeft } = { boxWidth: 1650, boxHeight: 920, marginTop: 60, marginRight: 100, marginBottom: 60, marginLeft: 100 }
+        const { innerWidth, innerHeight } = { innerWidth: boxWidth - marginLeft - marginRight, innerHeight: boxHeight - marginTop - marginBottom }
+
+        const xValue = d => Math.log(d['确诊人数'] + 1)
+        const yValue = d => Math.log(d["新增确诊"] + 1)
+        const rValue = d => { return Math.sqrt(d['感染率'] * 500) * 0.8 };
+
+        const xAsixLabel = "确诊人数"
+        const yAsixLabel = "新增人数"
+
+        let xScale, yScale;
+
+        let metapop;
+
+        var color = {
+            "武汉":"#ff1c12",
+            "黄石": "#de5991",
+            "十堰": "#759AA0",
+            "荆州": "#E69D87",
+            "宜昌": "#be3259",
+            "襄阳": "#EA7E53",
+            "鄂州": "#EEDD78",
+            "荆门": "#9359b1",
+            "孝感": "#47c0d4",
+            "黄冈": "#F49F42",
+            "咸宁": "#AA312C",
+            "恩施州": "#B35E45",
+            "随州": "#4B8E6F",
+            "仙桃": "#ff8603",
+            "天门": "#ffde1d",
+            "潜江": "#1e9d95",
+            "神农架": "#7289AB"
+        }
+
+        var legend_color = [
+            "#ff1c12",
+            "#de5991",
+            "#759AA0",
+            "#E69D87",
+            "#be3259",
+            "#EA7E53",
+            "#EEDD78",
+            "#9359b1",
+            "#47c0d4",
+            "#F49F42",
+            "#AA312C",
+            "#B35E45",
+            "#4B8E6F",
+            "#ff8603",
+            "#ffde1d",
+            "#1e9d95",
+            "#7289AB"
+        ]
+
+        var legend_name = ["武汉市",
+            "黄石市",
+            "十堰市",
+            "荆州市",
+            "宜昌市",
+            "襄阳市",
+            "鄂州市",
+            "荆门市",
+            "孝感市",
+            "黄冈市",
+            "咸宁市",
+            "恩施州",
+            "随州市",
+            "仙桃市",
+            "天门市",
+            "潜江市",
+            "神农架",
+        ];
+        
+
+        function renderLegend() {
+            let g = d3.select("#mainGroup");
+            let legendGroup = g.selectAll(".legend").data(legend_name).enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(" + (innerWidth + 10) + "," + (i * 25 + 380) + ")"; });
+
+            legendGroup.append("rect")
+            .attr("width", 30)
+            .attr("height", 20)
+            .attr("fill", (d, i) => legend_color[i])
+
+            legendGroup.append("text")
+            .attr("class", "legend_text")
+            .attr("fill", (d, i) => legend_color[i])
+            .attr("x", 40)
+            .attr("y", 15)
+            .text(d => d)
+        }
+
+        function renderInit (data) {
+            const svg = d3.select("#svg").append("svg")
+            svg.attr("width", boxWidth).attr("height", boxHeight)
+
+            const g = d3.select("svg").append("g").attr("id", "mainGroup").attr("transform", `translate(${marginLeft}, ${marginTop})`)
+
+            xScale = d3.scaleLinear()
+            .domain(d3.extent(data, xValue))
+            .range([0, innerWidth])
+            .nice()
+
+            yScale = d3.scaleLinear()
+            .domain(d3.extent(data, yValue).reverse())
+            .range([0, innerHeight])
+            .nice()
+
+            const xAsix = d3.axisBottom(xScale).tickSize(-innerHeight).tickPadding(10)
+            const xAsixGroup = g.append("g").attr("class", "xAsix").call(xAsix).attr("transform", `translate(0, ${innerHeight})`)
+            
+            const yAsix = d3.axisLeft(yScale).tickSize(-innerWidth).tickPadding(10)
+            const yAsixGroup = g.append("g").attr("class", "yAsix").call(yAsix)
+
+            xAsixGroup.append("text").attr("font-size", "2em").attr("y", 40).attr("x", innerWidth / 2).attr("fill", "#666").text(xAsixLabel)
+            yAsixGroup.append("text").attr("font-size", "2em").attr("y", -60).attr("x", -innerHeight / 2).attr("text-anchor", "middle").attr("fill", "#666").text(yAsixLabel)
+            .attr("transform", `rotate(-90)`)
+        }
+
+        function renderUpdate(daily) {
+            const mainG = d3.select("#mainGroup")
+            let time = daily[0]['日期']
+
+            mainG.selectAll(".date_text").remove()
+            mainG.append("text")
+            .attr("class", "date_text")
+            .attr("x", 30)
+            .attr("y", innerHeight / 10 - 20)
+            .attr("dy", ".5em")
+            .attr("opcity", 0.8)
+            .style("text-anchor", "start")
+            .attr("fill", "#504f4f")
+            .attr('font-size', '5em')
+            .attr('font-weight', 'bold')
+            .text(time)
+
+            let circles = mainG.selectAll("circle").data(daily, d => d["地区"]);
+
+            let newCircles = circles.enter().append("circle")
+            .attr("cx", d => xScale(xValue(d)))
+            .attr("cy", d => yScale(yValue(d)))
+            .attr("r", rValue)
+            .attr("fill", d => color[d['地区']])
+            .attr("opcity", .8)
+
+            circles.merge(newCircles).transition().ease(d3.easeLinear).duration(1000)
+            .attr("cx", d => xScale(xValue(d)))
+            .attr("cy", d => yScale(yValue(d)))
+            .attr("r", rValue)
+
+            let textupdates = mainG.selectAll(".city_text").data(daily)
+            let textenter = textupdates.enter()
+            .append("text")
+            .attr("class", "city_text")
+            .attr("x", d => xScale(xValue(d)))
+            .attr("y", d => yScale(yValue(d)))
+            .attr("dy", "1em")
+            .attr("fill", "#333")
+            .attr("text-anchor", "middle")
+            .text(d=>d['地区'])
+
+            textupdates.merge(textenter).transition().ease(d3.easeLinear).duration(1000)
+            .attr("x", d => xScale(xValue(d)))
+            .attr("y", d => yScale(yValue(d)))
+        }
+
+        d3.csv("http://127.0.0.1:8081/hubeipop.csv").then(data => {
+            data.forEach(d => {
+                d['人口（万人）'] = +(d['人口（万人）'])
+            })
+            metapop = data;
+        })
+
+        d3.csv('http://127.0.0.1:8081/hubeinxt.csv').then(data => {
+            data = data.filter(d => d['地区'] !== '总计')
+            const dates = Array.from( new Set(data.map( d => d['日期'] )) )
+
+            data.forEach( d => {
+                d['确诊人数'] = +(d['确诊人数']);
+                d['治愈人数'] = +(d['治愈人数']);
+                d['死亡人数'] = +(d['死亡人数']);
+                d['新增确诊'] = +(d['新增确诊']);
+                if(d['新增确诊'] < 0){
+                    d['新增确诊'] = 0;
+                }
+                d['感染率'] = (d['确诊人数'] / (metapop.find(x => x['地区'] === d['地区'])['人口（万人）']));
+            } )
+
+            dates.sort( (a, b) => new Date(a) - new Date(b))
+            
+            const temp = []
+            
+            dates.forEach(() => {
+                temp.push([])
+            })
+
+            data.forEach( d => {
+                temp[dates.indexOf(d['日期'])].push(d)
+            })
+            renderInit(data)
+            renderLegend()
+
+            let i = 0;
+            let timer = setInterval(() => {
+                if (i >= dates.length) {
+                    clearInterval(timer)
+                } else {
+                    renderUpdate(temp[i])
+                    i++;
+                }
+            }, 1000)
+        })
+    </script>
+</body>
+</html>

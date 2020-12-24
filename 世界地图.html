@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    <style>
+        #mainsvg{
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <svg width="1600" height="800" id="mainsvg" class="svgs"></svg>
+    <script>
+        let svg = d3.select('svg');
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
+        const margin = {top: 60, right: 60, bottom: 10, left: 60};
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const g = svg.append('g').attr('id', 'maingroup')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+        d3.json("http://127.0.0.1:8081/countries-110m.json").then(data => {
+            const worldMeta = topojson.feature(data, data.objects.countries)
+            console.log(worldMeta)
+        })
+    </script>
+</body>
+</html>
