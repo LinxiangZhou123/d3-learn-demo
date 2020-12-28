@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./js/d3.min.js"></script>
+    <script src="./js/library/moment.min.js"></script>
+</head>
+<body>
+    <svg id="svg" width="1600" height="800"></svg>
+    <script>
+        const naiveData = [
+            {month: new Date(2015, 0, 1), apples: 3840, bananas: 1920, cherries: 960, dates: 400},
+            {month: new Date(2015, 1, 1), apples: 1600, bananas: 1440, cherries: 960, dates: 400},
+            {month: new Date(2015, 2, 1), apples:  640, bananas:  960, cherries: 640, dates: 400},
+            {month: new Date(2015, 3, 1), apples:  320, bananas:  480, cherries: 640, dates: 400}
+        ];
+        const keys = ['apples', 'bananas', 'cherries', 'dates']
+        const svg = d3.select("#svg");
+        const width = +svg.attr("width"), height = +svg.attr("height");
+        const margin = {top: 120, right: 200, bottom: 100, left: 200};
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        
+        const g = svg.append("g").attr("class", "main_group")
+        .attr("transform", `translate(${margin.left}, ${margin.top})`)
+
+        const stack = d3.stack()
+        .keys(keys)
+        .order(d3.stackOrderNone)(naiveData)
+
+        const xScale = d3.scaleBand()
+        .domain(naiveData.map(d => { return moment(d.month).format("YYYY-MM-DD") }))
+        .range([0, innerWidth])
+        .padding(0.6)
+
+        const yScale = d3.scaleLinear()
+        .domain([0, d3.max(stack, d => d3.max(d, datum => datum[1]))])
+        .range([innerHeight, 0])
+        .nice()
+        
+        const xAsix = d3.axisBottom(xScale)
+        .tickSize(-innerHeight)
+
+        const yAsix = d3.axisLeft(yScale)
+        .tickSize(-innerWidth)
+
+        g.append("g").call(xAsix).attr("transform", `translate(${0}, ${innerHeight})`).attr("class", "x_axis")
+        g.append("g").call(yAsix).attr("class", "y_axis")
+
+        const color = d3.scaleOrdinal()
+        .domain(keys)
+        .range(d3.schemeSet3)
+        console.log(stack)
+        g.selectAll(".rect_group").data(stack).join("g")
+        .attr("class", "rect_group")
+        .attr("fill", d => color(d.key))
+        .selectAll(".data_rect").data(d => d).join("rect")
+        .attr("class", "data_rect")
+        .attr("x", d => xScale(moment(d.data.month).format("YYYY-MM-DD")))
+        .attr("y", d => yScale(d[1]))
+        .attr("height", d => yScale(d[0]) - yScale(d[1]))
+        .attr("width", xScale.bandwidth())
+    </script>
+</body>
+</html>
