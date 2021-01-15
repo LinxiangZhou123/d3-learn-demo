@@ -216,18 +216,19 @@
             data.forEach( d => {
                 temp[dates.indexOf(d['日期'])].push(d)
             })
+            console.log(data)
             renderInit(data)
             renderLegend()
 
             let i = 0;
-            let timer = setInterval(() => {
-                if (i >= dates.length) {
-                    clearInterval(timer)
-                } else {
-                    renderUpdate(temp[i])
-                    i++;
-                }
-            }, 1000)
+            // let timer = setInterval(() => {
+            //     if (i >= dates.length) {
+            //         clearInterval(timer)
+            //     } else {
+            //         renderUpdate(temp[i])
+            //         i++;
+            //     }
+            // }, 1000)
         })
     </script>
 </body>

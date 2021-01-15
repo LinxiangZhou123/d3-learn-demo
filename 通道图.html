@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./js/d3.min.js"></script>
+</head>
+<body>
+    <svg id="channels" width="1600" height="800"></svg>
+    <script>
+        const svg = d3.select("#channels")
+        
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
+        const margin = {top: 60, right: 60, bottom: 10, left: 60};
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        const g = svg.append("g")
+        .attr("id", "mainGroup")
+        .attr("transform", `translate(${margin.left}, 0)`)
+        let scaleX, scaleY, scaleV,axisBottom, axisLeft, path;
+        let timeRange = [30, 30.20]
+        let timeFragment;
+
+        const line = d3.line()
+        .defined(d => !isNaN(d))
+        .x((d, i) => scaleX(timeFragment[i]))
+        .y((d, i) => scaleV(d))
+
+        function splitAxisY(height, data) {
+            const range = height / data.length;
+            let curBasic = 0, result = {};
+            for (let index = 0; index < data.length; index++) {
+                result[data[index].name] = [curBasic, curBasic + range]
+                curBasic = curBasic + range
+            }
+            return result;
+        }
+
+        d3.json("http://127.0.0.1:8080/json.json").then(data => {
+            const channels = []
+            Object.keys(data.subData.channels).forEach(key => {
+                channels.push({
+                    name: key,
+                    value: data.subData.channels[key]
+                })  
+            });
+
+            let current = data.subData.time.indexOf(timeRange[0]),
+            endIndex = data.subData.time.indexOf(timeRange[1]) + 1
+            timeFragment = data.subData.time.slice(current, endIndex)
+
+            let curChannel = []
+            for (let i = 0; i < channels.length; i++) {
+                curChannel.push({
+                    name: channels[i].name,
+                    value: channels[i].value.slice(current, endIndex)
+                })
+            }
+            
+            scaleX = d3.scaleLinear()
+            .domain(d3.extent(data.subData.time.splice(current, endIndex)))
+            .range([margin.left, innerWidth])
+            .nice()
+            
+            scaleY = d3.scaleBand()
+            .domain(curChannel.map(channel => channel.name))
+            .range([margin.top, innerHeight].reverse())
+            .padding(0.15)
+
+            axisBottom = d3.axisBottom(scaleX)
+            .ticks(20)
+
+            axisLeft = d3.axisLeft(scaleY)
+
+            g.append("g").attr("class", "x_axis")
+            .attr("transform", `translate(0, ${innerHeight})`)
+            .call(axisBottom)
+
+            g.append("g").attr("class", "y_axis")
+            .attr("transform", `translate(${margin.left}, 0)`)
+            .call(axisLeft)
+
+            const yHeight = d3.select(".y_axis").node().getBBox().height;
+            const domains = splitAxisY(yHeight, curChannel)
+            scaleV = {}
+            curChannel.forEach(channel => {
+                console.log(domains[channel.name][0], domains[channel.name][1])
+                console.log([d3.min(channel.value), d3.max(channel.value)])
+                scaleV[channel.name] = d3.scaleLinear()
+                .domain([d3.min(channel.value), d3.max(channel.value)])
+                .range([domains[channel.name][0], domains[channel.name][1]])
+            })
+            
+            path = g.append("g")
+            .attr("transform", `translate(0, ${margin.top})`)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 1.5)
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .selectAll("path")
+            .data(curChannel)
+            .join("path")
+            .attr("class", "channel_line")
+            .style("mix-blend-mode", "multiply")
+            .attr("d", data => {
+                let line = d3.line().defined(d => !isNaN(d))
+                .x((d, i) => scaleX(timeFragment[i]))
+                .y(d => scaleV[data.name](d))
+                return line(data.value)
+            });
+        })
+    </script>
+</body>
+</html>

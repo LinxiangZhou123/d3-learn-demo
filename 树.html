@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./js/d3.min.js"></script>
+</head>
+<body>
+    <svg width="1600" height="940" id="mainsvg" style="display: block; margin: auto;"></svg>
+    <script>
+        const svg = d3.select("#mainsvg")
+        
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
+        const margin = {top: 50, right: 150, bottom: 50, left: 60};
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const g = svg.append("g")
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+        function fill(d, color) {
+            if (d.depth === 0) return color(d.data.name);
+            if (d.depth > 1) {
+                return fill(d.parent, color);
+            } else {
+                return color(d.data.name)
+            }
+        }
+
+        function direction(d) {
+            if (d.children) {
+                return "end"
+            } else {
+                return "start"
+            }
+        }
+
+        let root;
+        d3.json("http://127.0.0.1:8081/games.json").then(data => {
+            root = d3.hierarchy(data)
+            root = d3.tree().size([innerHeight, innerWidth])(root)
+
+            const color = d3.scaleOrdinal()
+            .domain(root.descendants().filter(d => d.depth <= 1).map(d => d.data.name))
+            .range(d3.schemeCategory10)
+
+            g.selectAll("path").data(root.links()).join("path")
+            .attr("fill", "none")
+            .attr("stroke", "#ddd")
+            .attr("stroke-width", 1.5)
+            .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x))
+
+            g.selectAll("circle").data(root.descendants()).join("circle")
+            .attr("cx", d => d.y)
+            .attr("cy", d => d.x)
+            .attr("r", 5)
+            .attr("fill", d => fill(d, color))
+
+            g.selectAll("text").data(root.descendants()).join("text")
+            .attr("x", d => d.y)
+            .attr("y", d => d.x)
+            .attr("dx", d => d.children ? -10 : 10)
+            .attr("dy", 6)
+            .attr("text-anchor", direction)
+            .text(d=>d.data.name)
+        })
+    </script>
+</body>
+</html>

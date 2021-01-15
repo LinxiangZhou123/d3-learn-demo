@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./js/d3.min.js"></script>
+</head>
+<body>
+    <script>
+        const demo = {
+            "name": "cluster",
+            "children": [
+                {"name": "AgglomerativeCluster", "size": 3938},
+                {"name": "CommunityStructure", "size": 3812},
+                {"name": "HierarchicalCluster", "size": 6714},
+                {"name": "MergeEdge", "size": 743}
+            ]
+        }
+        var d;
+        d3.csv("http://127.0.0.1:8081/Connectome_AAL116_AAL_GSR.csv").then(data => {
+            var stratify = d3.stratify()
+                // .parentId(function(d) { console.log(d) });
+                delete data.columns
+                console.log(data)
+            const root = stratify({ name: "circle", children: data })
+            
+        })
+    </script>
+</body>
+</html>
