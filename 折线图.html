@@ -35,6 +35,7 @@
             .domain(d3.extent(data, yValue).reverse())
             .range([0, innerHeight])
             .nice()
+            
             const xAsix = d3.axisBottom(xSacle)
             .ticks(Math.floor(alldates.length / 4))
             .tickFormat(d3.timeFormat("%b - %d"))
@@ -66,7 +67,7 @@
             .attr("d", line)
         }
 
-        d3.csv("http://127.0.0.1:8081/province.csv").then(data => {
+        d3.csv("http://127.0.0.1:8089/province.csv").then(data => {
             data = data.filter( datum => datum['省份'] !== '总计' && datum['省份'] !== '湖北')
             alldates = Array.from( new Set(data.map( datum => datum['日期'] )) )
             data.forEach(datum => {
