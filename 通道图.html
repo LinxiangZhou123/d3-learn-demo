@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <script src="./js/d3.min.js"></script>
+    <!-- <script src="./js/d3.min.js"></script> -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/d3/6.3.1/d3.min.js"></script>
 </head>
 <body>
     <span>
-        <input type="text" onblur="setStart(this)" value="30">
+        <label for="setRange">自定义时间范围：</label>
+        <input id="setRange" type="text" onblur="setStart(this)" value="30">
         --
         <input type="text" onblur="setEnd(this)" value="30.2">
+    </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <label for="setStep">自定义时间步频：</label>
+        <input type="text" id="setStep" onblur="setTimeStep(this)" value="0.1">
+        <button onclick="backOff()"><<</button>
+        <button onclick="forward()">>></button>
     </span>
     <button onclick="updateMap()">确定</button>
     <svg id="channels" width="1600" height="800"></svg>
@@ -26,7 +35,7 @@
         const g = svg.append("g")
         .attr("id", "mainGroup")
         .attr("transform", `translate(${margin.left}, ${margin.top})`)
-        let scaleX, scaleY, scaleV, scaleG, axisBottom, axisLeft, path;
+        let scaleX, scaleY, scaleV, scaleG, axisBottom, axisLeft, path, timeStep = 0.1;
         let timeRange = [30, 30.20]
         let timeFragment;
 
@@ -133,10 +142,51 @@
                 .y(d => scaleV[data.name](d))
                 return line(data.value)
             });
+
+            svg.on("mouseenter", entered)
+            .on("mousemove", moved)
+            .on("mouseleave", leaved)
         })
 
+        function entered() {
+            let grid = d3.select("#gridGroup")
+            grid.append("g")
+            .attr("id", "rule_group")
+            .append("line")
+            .attr("id", "ruler")
+            .attr("fill", "none")
+            .attr("stroke", "blue")
+            .attr("stroke-width", 1.5)
+            .attr("x1", 0)
+            .attr("y1", 0)
+            .attr("x2", 0)
+            .attr("y2", innerHeight)
+            d3.select("#rule_group").append("text")
+        }
+
+        function moved(event) {
+            const position = d3.pointer(event, this)
+            let ruler = g.select("#rule_group")
+            if (position[0] <= 60 || position[0] >= 1540) {
+                ruler.attr("display", "none")
+            } else {
+                console.log()
+                ruler.attr("display", null)
+                ruler.select("text")
+                .attr("text-anchor", "middle")
+                .attr("y", -4)
+                .text(Math.round(scaleX.invert(position[0] - margin.left) * 1000) / 1000)
+                ruler.attr("transform", `translate(${position[0] - margin.left}, 0)`)
+            }
+        }
+
+        function leaved() {
+            g.select("#rule_group").remove()
+        }
+
         function drawGrid(xWidth, yHeight) {
-            g.selectAll("line.horizontalGrid").data(scaleX.ticks(200))
+            g.append("g").attr("id", "gridGroup")
+            .selectAll("line.horizontalGrid").data(scaleX.ticks(200))
             .join("line")
             .attr("fill", "none")
             .attr("stroke", "#ccc")
@@ -145,8 +195,8 @@
             .attr("y1", 0)
             .attr("x2", d => scaleX(d))
             .attr("y2", yHeight)
-            console.log(scaleG.ticks(130))
-            g.selectAll("line.verticalGrid").data(scaleG.ticks(130))
+            g.select("#gridGroup")
+            .selectAll("line.verticalGrid").data(scaleG.ticks(130))
             .join("line")
             .attr("fill", "none")
             .attr("stroke", "#ccc")
@@ -161,8 +211,7 @@
             let newTime, newChannels = [];
             let current = allData.subData.time.indexOf(timeRange[0]),
             endIndex = allData.subData.time.indexOf(timeRange[1]) + 1;
-            // newTime = timeRange.concat(allData.subData.time.slice(current, endIndex))
-            console.log(allData.subData.time.slice(current, endIndex))
+
             scaleX.domain(d3.extent(allData.subData.time.slice(current, endIndex)))
             timeFragment = allData.subData.time.slice(current, endIndex)
             axisBottom.scale().domain(d3.extent(allData.subData.time.slice(current, endIndex))).range([0, innerWidth])
@@ -193,6 +242,22 @@
                 .y(d => scaleV[data.name](d))
                 return line(data.value)
             })
+        }
+
+        function setTimeStep(evt) {
+            timeStep = Number(evt.value)
+        }
+
+        function forward(evt) {
+            timeRange[0] = (timeRange[0] * 10 + timeStep * 10) / 10;
+            timeRange[1] = (timeRange[1] * 10 + timeStep * 10) / 10;
+            updateMap()
+        }
+
+        function backOff() {
+            timeRange[0] = (timeRange[0] * 10 - timeStep * 10) / 10;
+            timeRange[1] = (timeRange[1] * 10 - timeStep * 10) / 10;
+            updateMap()
         }
     </script>
 </body>
