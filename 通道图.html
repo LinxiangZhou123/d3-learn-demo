@@ -22,6 +22,13 @@
         <button onclick="backOff()"><<</button>
         <button onclick="forward()">>></button>
     </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <label for="setRange">缩放：</label>
+        <button id="narrow" onclick="narrowRate()">-</button>
+        <button onclick="enlargRate()">+</button>
+        <button onclick="resetRate()">重置</button>
+    </span>
     <svg id="channels" width="1600" height="800"></svg>
     <script>
         let allData, allChannels;
@@ -35,7 +42,7 @@
         const g = svg.append("g")
         .attr("id", "mainGroup")
         .attr("transform", `translate(${margin.left}, ${margin.top})`)
-        let scaleX, scaleY, scaleV, scaleG, axisBottom, axisLeft, path, timeStep = 0.1;
+        let scaleX, scaleY, scaleV, scaleG, axisBottom, axisLeft, path, timeStep = 0.1, rate = 1;
         let timeRange = [30, 30.20]
         let timeFragment;
 
@@ -45,6 +52,24 @@
 
         function setEnd(evt) {
             timeRange[1] = Number(evt.value)
+        }
+
+        function narrowRate() {
+            if (rate <= 0.1) return alert("已经最小")
+            rate = (rate * 10 - 2) / 10
+            updateMap()
+        }
+
+        function enlargRate() {
+            if (rate >= 5) return alert("已经最大")
+            rate = (rate * 10 + 2) / 10
+            updateMap()
+        }
+
+        function resetRate() {
+            rate = 1
+            d3.select("#draw_space").attr("transform", `translate(0, 0)`)
+            updateMap()
         }
 
         const line = d3.line()
@@ -62,7 +87,7 @@
             return result;
         }
 
-        d3.json("http://127.0.0.1:8080/json.json").then(data => {
+        d3.json("http://127.0.0.1:8081/json.json").then(data => {
             allData = data
             const channels = []
             Object.keys(data.subData.channels).forEach(key => {
@@ -97,7 +122,7 @@
 
             let range = d3.extent(data.subData.time.slice(current, endIndex))
             axisBottom = d3.axisBottom(scaleX)
-            .ticks(20, 200)
+            .ticks(11)
 
             axisLeft = d3.axisLeft(scaleY)
 
@@ -126,6 +151,7 @@
             drawGrid(xWidth, yHeight)
 
             path = g.append("g")
+            .attr("id", "draw_space")
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-width", 1.5)
@@ -140,13 +166,21 @@
                 let line = d3.line().defined(d => !isNaN(d))
                 .x((d, i) => scaleX(timeFragment[i]))
                 .y(d => scaleV[data.name](d))
-                return line(data.value)
+                return line(data.value.map(datum => datum * rate))
             });
 
             svg.on("mouseenter", entered)
             .on("mousemove", moved)
             .on("mouseleave", leaved)
+            
+            svg.call(d3.zoom()
+            .scaleExtent([1, 1])
+            .on("zoom", zoomed));
         })
+
+        function zoomed(event) {
+            if (rate != 1) d3.select("#draw_space").attr("transform", `translate(0, ${event.transform.y})`)
+        }
 
         function entered() {
             let grid = d3.select("#gridGroup")
@@ -170,7 +204,6 @@
             if (position[0] <= 60 || position[0] >= 1540) {
                 ruler.attr("display", "none")
             } else {
-                console.log()
                 ruler.attr("display", null)
                 ruler.select("text")
                 .attr("text-anchor", "middle")
@@ -211,7 +244,7 @@
             let newTime, newChannels = [];
             let current = allData.subData.time.indexOf(timeRange[0]),
             endIndex = allData.subData.time.indexOf(timeRange[1]) + 1;
-
+            
             scaleX.domain(d3.extent(allData.subData.time.slice(current, endIndex)))
             timeFragment = allData.subData.time.slice(current, endIndex)
             axisBottom.scale().domain(d3.extent(allData.subData.time.slice(current, endIndex))).range([0, innerWidth])
@@ -239,8 +272,10 @@
             .attr("d", data => {
                 let line = d3.line().defined(d => !isNaN(d))
                 .x((d, i) => scaleX(timeFragment[i]))
-                .y(d => scaleV[data.name](d))
-                return line(data.value)
+                .y(d => {
+                    return scaleV[data.name](d)
+                })
+                return line(data.value.map(datum => datum * rate))
             })
         }
 
