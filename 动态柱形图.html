@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/d3/6.3.1/d3.js"></script>
+</head>
+<body>
+    <script>
+        const timeLimit = ["20200210", "20200701"]
+        fetch("http://127.0.0.1:8081/country.json")
+        .then(res=>res.json())
+        .then(res => {
+            const data = [], countrys = [];
+            res.forEach(d => {
+                const [start, end] = [d.findIndex(item => item.dateId == timeLimit[0]), d.findIndex(item => item.dateId == timeLimit[1])]
+                const temp = d.slice(start, end)
+                data.push(temp)
+            })
+            const time = data[0].map(d => d.dateId)
+            console.log(time)
+            
+        })
+    </script>
+</body>
+</html>

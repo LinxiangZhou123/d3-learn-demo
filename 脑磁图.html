@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/d3tip.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/d3/6.3.1/d3.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mathjs/8.1.0/math.js"></script>
+    <style>
+        #file_detail{
+            margin: 20px 0 0 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <span>
+        <label for="select_brain">选择脑区</label>
+        <select name="" id="select_brain" onchange="selectBrain(this)"></select>
+    </span>
+    <span>
+        <label for="start">起点：</label>
+        <input id="start" type="text" onblur="setStart(this)" />
+        <label for="end">终点：</label>
+        <input id="end" type="text" onblur="setEnd(this)">
+        <label for="range">跨度：</label>
+        <input type="text" id="range" onchange="setRange(this)" value="0.2">
+        <button onclick="updateMap()">确定</button>
+    </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <label for="setStep">步频：</label>
+        <input type="text" id="setStep" onchange="setTimeStep(this)" value="0.2">
+        <button onclick="backOff()"><<</button>
+        <button onclick="forward()">>></button>
+        <button onclick="autoplay()" id="player">播放</button>
+    </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <label for="narrow">缩放：</label>
+        <button id="narrow" onclick="narrowRate()">-</button>
+        <button onclick="enlargRate()">+</button>
+        <button onclick="resetRate()">重置</button>
+    </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <label for="overlay_btn">overlay：</label>
+        <button onclick="overlay()" id="overlay_btn">叠加</button>
+    </span>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <span>
+        <button onclick="filter()" id="filter">滤波</button>
+        &nbsp;&nbsp;
+        <button onclick="trap()" id="trap">陷波</button>
+    </span>
+    <div id="file_detail"></div>
+    <svg id="channels" width="1600" height="850"></svg>
+    <script>
+        let BrainAbbr = {
+            "lt": "Left-temporal",
+            "rt": "Right-temporal",
+            "lp": "Left-parietal",
+            "rp": "Right-parietal",
+            "lo": "Left-occipital",
+            "ro": "Right-occipital",
+            "lf": "Left-frontal",
+            "rf": "Right-frontal"
+        }
+        let fragment = document.createDocumentFragment()
+        Object.keys(BrainAbbr).forEach(key => {
+            let option = document.createElement("option")
+            option.value = key;
+            option.innerText = BrainAbbr[key]
+            fragment.appendChild(option)
+        })
+        document.getElementById("select_brain").appendChild(fragment)
+    </script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mathjs/8.1.0/math.min.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/channelMap.js"></script>
+    <script src="./js/bizIndex.js"></script>
+</body>
+</html>
